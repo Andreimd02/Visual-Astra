@@ -1,10 +1,11 @@
-from PyQt5.QtWidgets import QMainWindow, QMenu, QDialog, QInputDialog, QApplication, QDialogButtonBox, QFrame, QVBoxLayout, QFormLayout, QAction, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QMainWindow, QMenu, QApplication, QFrame, QVBoxLayout, QAction
 from PyQt5 import QtGui
-import vtk
+from View.Dialogs import Dialogs
+from BuildFunctions import *
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from interactor2d import CustomInteractor
 import sys
-
+import math
 
 ''' a ordem eh monta a tela
     cria o frame do vtk
@@ -13,26 +14,6 @@ import sys
     cria o interactor
     chama o loop
 '''
-
-def buildDiskActor(inner_radius = 0, outer_radius = 20, position = (100, 20), color = (1, 1, 1)):
-    disk = vtk.vtkDiskSource()
-    disk.SetInnerRadius(inner_radius)
-    disk.SetOuterRadius(outer_radius)
-    disk.SetRadialResolution(100)
-    disk.SetCircumferentialResolution(100)
-    disk.Update()
-
-    mapper = vtk.vtkPolyDataMapper2D()
-    mapper.SetInputConnection(disk.GetOutputPort())
-
-    actor = vtk.vtkActor2D()
-    actor.SetMapper(mapper)
-
-    actor.SetPosition(position[0], position[1])
-
-    actor.GetProperty().SetColor(color)
-
-    return actor
 
 class SimulationWindow(QMainWindow):
     def __init__(self, projection_conf):
@@ -44,6 +25,8 @@ class SimulationWindow(QMainWindow):
         self.left = 300
         self.width = 800
         self.height = 600
+
+        self.projections_number = None
 
         self.initWindow()
 
@@ -70,14 +53,14 @@ class SimulationWindow(QMainWindow):
 
 
     def addActors(self):
-        self.xraysource = buildDiskActor(position=(100, 130), color=(240, 240, 0))
+        self.xraysource = buildDiskActor(position=(100, 130))
         self.renderer.AddActor(self.xraysource)
 
-        self.object = buildDiskActor(position=(350, 300), color=(0, 240, 240))
+        self.object = buildDiskActor(position=(350, 300))
         self.renderer.AddActor(self.object)
 
-        self.bar = buildDiskActor(position=(500, 400), color=(240, 0, 240))
-        self.renderer.AddActor(self.bar)
+        self.detector = buildCubeActor(position=(500, 400))
+        self.renderer.AddActor(self.detector)
 
         self.renderer.ResetCamera()
 
@@ -97,7 +80,6 @@ class SimulationWindow(QMainWindow):
         save_action = QAction(QtGui.QIcon("Resources/saveIcon.png"), 'Save', self)
         save_action.setShortcut("Ctrl+S")
         file_menu.addAction(save_action)
-    ##    save_action.triggered()
 
     def initWindow(self):
         # self.setWindowIcon(QtGui.QIcon("letter.png")) ##Define a icon
@@ -107,44 +89,76 @@ class SimulationWindow(QMainWindow):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
     def contextMenuEvent(self, event):
-        self.interactor.GetInteractorStyle().OnRightButtonDown()
+        self.interactor.GetInteractorStyle().OnRightButtonDown(None, None)
         if(self.interactor.GetInteractorStyle().chosenPiece is not None):
-            contextMenu = QMenu(self)
-            set_pos = contextMenu.addAction("set position")
-            action = contextMenu.exec_(self.mapToGlobal(event.pos()))
-            if action == set_pos:
-                pos_dialog = PositionDialog()
-                if(pos_dialog.exec()):
-                    x, y =  pos_dialog.getInputs()
-                    self.interactor.GetInteractorStyle().chosenPiece.SetPosition(x, y)
-            self.interactor.GetInteractorStyle().chosenPiece = None
+            ## checa se é um detector
+            if(self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor() == (0.3, 0.3, 0.3)):
+                contextMenu = QMenu(self)
+                set_pos = contextMenu.addAction("set position")
+                det_num = contextMenu.addAction("DetectorNumbers")
+                set_trajectory = contextMenu.addAction("set trajectory")
+                action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+                if action == set_pos:
+                    pos_dialog = Dialogs()
+                    pos_dialog.xyPosition()
+                    if (pos_dialog.exec()):
+                        x, y = pos_dialog.getxyInputs()
+                        self.interactor.GetInteractorStyle().chosenPiece.SetPosition(x, y, 0)
 
-    def positionDialog(self):
-        text, result = QInputDialog.getText(self, "Coordenadas", "Digite os valores de X e Y")
-        if(result == True):
-            return text
+                elif action == det_num:
+                    det_dialog = Dialogs()
+                    det_dialog.detectorNumbers()
+                    if(det_dialog.exec()):
 
-class PositionDialog(QDialog):
-        def __init__(self, parent=None):
-            super().__init__(parent)
+                        numbers, size =  det_dialog.getDetInputs()
+                        x, y, _ = self.interactor.GetInteractorStyle().chosenPiece.GetPosition()
+                        new_actor = buildCubeActor(position=(x, y, 0), x_length=numbers*size)
+                        self.renderer.RemoveActor(self.interactor.GetInteractorStyle().chosenPiece)
+                        self.renderer.AddActor(new_actor)
 
-            self.setWindowTitle("Chosse the coordinates")
+                elif action == set_trajectory:
+                    traj_dialog = Dialogs()
+                    traj_dialog.actorTrajectory(self.projections_number)
+                    if(traj_dialog.exec()):
+                        projs, trajectory_type = traj_dialog.getTrajInputs()
+                        self.projections_number = projs
+                        # trocar projections_number dos dois detectors
+                        self.setActorTrajectory(self.interactor.GetInteractorStyle().chosenPiece, projs, trajectory_type)
 
-            self.x = QLineEdit(self)
-            self.y = QLineEdit(self)
-            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self);
 
-            layout = QFormLayout(self)
-            layout.addRow("X Axis", self.x)
-            layout.addRow("Y axis", self.y)
-            layout.addWidget(buttonBox)
+            else:
+                contextMenu = QMenu(self)
+                set_pos = contextMenu.addAction("set position")
+                set_trajectory = contextMenu.addAction("set trajectory")
+                action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+                if action == set_pos:
+                    pos_dialog = Dialogs()
+                    pos_dialog.xyPosition()
+                    if (pos_dialog.exec()):
+                        x, y = pos_dialog.getxyInputs()
+                        self.interactor.GetInteractorStyle().chosenPiece.SetPosition(x, y, 0)
 
-            buttonBox.accepted.connect(self.accept)
-            buttonBox.rejected.connect(self.reject)
+                elif action == set_trajectory:
+                    traj_dialog = Dialogs()
 
-        def getInputs(self):
-            return (int(self.x.text()), int(self.y.text()))
+                    traj_dialog.actorTrajectory(self.projections_number)
+                    if(traj_dialog.exec()):
+                        projs, trajectory_type = traj_dialog.getTrajInputs()
+                        self.projections_number = projs
+                        # trocar projections_number dos dois detectors
+                        self.setActorTrajectory(self.interactor.GetInteractorStyle().chosenPiece, projs, trajectory_type)
 
+        self.interactor.GetInteractorStyle().OnRightButtonRelease(None, None)
+
+    def setActorTrajectory(self, actor, projs, trajectory_type):
+        if(trajectory_type == "circle_trajectory"):
+            self.trajectory, self.trajectory_nodes = buildCircleCurve(projs, 100, actor.GetPosition())
+            self.renderer.AddActor(self.trajectory)
+            self.renderer.AddActor(self.trajectory_nodes)
+            self.renderer.ResetCamera()
+
+        # if(trajectory_type == "custom_trajectory"):
+        #     self.trajectory = ContourWidget()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
