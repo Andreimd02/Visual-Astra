@@ -140,9 +140,11 @@ class SimulationWindow(QMainWindow):
                         projs, trajectory_type = traj_dialog.getTrajInputs()
                         self.projections_number = projs
                         # trocar projections_number dos dois detectors
-                        self.updateTrajectorys(object_type, projs, trajectory_type)
-                        self.setActorTrajectory(self.interactor.GetInteractorStyle().chosenPiece, projs,
-                                    trajectory_type, object_type_trajectory)
+                        if object_type_trajectory in self.objects_dic:
+                            self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
+                        else:
+                            self.objects_dic[object_type_trajectory] = []
+                            self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
 
             elif(self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor() == (1, 1, 1)):
                 object_type = "source"
@@ -171,32 +173,35 @@ class SimulationWindow(QMainWindow):
                     if(traj_dialog.exec()):
                         projs, trajectory_type = traj_dialog.getTrajInputs()
                         self.projections_number = projs
-                        # self.updateTrajectorys()
-                        # trocar projections_number dos dois detectors
-                        self.updateTrajectorys(object_type, projs, trajectory_type)
-                        self.setActorTrajectory(self.interactor.GetInteractorStyle().chosenPiece, projs,
-                                                trajectory_type, object_type_trajectory)
+                        if object_type_trajectory in self.objects_dic:
+                            self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
+                        else:
+                            self.objects_dic[object_type_trajectory] = []
+                            self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
+
 
         self.interactor.GetInteractorStyle().OnRightButtonRelease(None, None)
 
 
-    def updateTrajectorys(self, actual_object, projs, trajectory_type):
+    def updateTrajectorys(self, actual_object, projs, trajectory_type, object_type):
+        radius = 100
         if ("source_trajectory" in self.objects_dic):
             object_type = "source_trajectory"
-            self.renderer.RemoveActor(self.objects_dic[object_type][0])
-            self.renderer.RemoveActor(self.objects_dic[object_type][1])
-
-            if(actual_object != "source"):
+            if len(self.objects_dic[object_type]) != 0:
                 radius = self.getRadius(object_type)
-                self.setActorTrajectory(self.objects_dic["source"], projs, trajectory_type, object_type, radius = radius)
-
+                self.renderer.RemoveActor(self.objects_dic[object_type][0])
+                self.renderer.RemoveActor(self.objects_dic[object_type][1])
+            # if(actual_object != "source"):
+            self.setActorTrajectory(self.objects_dic["source"], projs, trajectory_type, object_type, radius = radius)
+        radius = 100
         if ("detector_trajectory" in self.objects_dic):
             object_type = "detector_trajectory"
-            self.renderer.RemoveActor(self.objects_dic[object_type][0])
-            self.renderer.RemoveActor(self.objects_dic[object_type][1])
-            if(actual_object != "detector"):
+            if len(self.objects_dic[object_type]) != 0:
                 radius = self.getRadius(object_type)
-                self.setActorTrajectory(self.objects_dic["detector"], projs, trajectory_type, object_type, radius = radius)
+                self.renderer.RemoveActor(self.objects_dic[object_type][0])
+                self.renderer.RemoveActor(self.objects_dic[object_type][1])
+            # if(actual_object != "detector"):
+            self.setActorTrajectory(self.objects_dic["detector"], projs, trajectory_type, object_type, radius = radius)
 
         self.interactor.GetInteractorStyle().updateObjects(self.objects_dic)
 

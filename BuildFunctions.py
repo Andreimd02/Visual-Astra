@@ -193,25 +193,3 @@ def buildCircleCurve(projections ,radius, position, obj):
 
     return (spline_actor, nodes_actor)
 
-#
-# def buildSplineSpheres(spline):
-#     nodes = vtk.vtkSphereSource()
-#     nodes.SetRadius(0.4)
-#     nodes.SetPhiResolution(10)
-#     nodes.SetThetaResolution(10)
-#
-#     polydata = vtk.vtkPolyData.SafeDownCast(spline.GetMapper().GetInputAsDataSet())
-#     print(polydata.GetNumberOfCells)
-#     glyph = vtk.vtkGlyph3D()
-#     glyph.SetInputData(polydata)
-#     glyph.SetSourceConnection(nodes.GetOutputPort())
-#
-#     mapper = vtk.vtkPolyDataMapper()
-#     mapper.SetInputConnection(glyph.GetOutputPort())
-#
-#     nodes_actor = vtk.vtkActor()
-#     nodes_actor.SetMapper(mapper)
-#     nodes_actor.GetProperty().SetColor(0.8900, 0.8100, 0.3400)
-#     nodes_actor.GetProperty().SetOpacity(.6)
-#
-#     return nodes_actor
