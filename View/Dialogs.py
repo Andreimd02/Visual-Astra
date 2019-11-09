@@ -33,6 +33,7 @@ class Dialogs(QDialog):
 
             label_trajectory = QLabel("Trajectory Type: ")
             self.circle_button = QRadioButton("Circle Trajectory")
+            self.circle_button.setChecked(True)
             self.straight_button = QRadioButton("Straight Trajectory")
             self.custom_button = QRadioButton("Custom Trajectory")
 
@@ -62,6 +63,22 @@ class Dialogs(QDialog):
                 return (int(self.projections.text()), "custom_trajectory")
             # else:
             #     return error
+
+        def trajectoryRadius(self):
+            self.setWindowTitle("Choose the Size of Trajectory")
+
+            self.radius = QLineEdit(self)
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+
+            layout = QFormLayout(self)
+            layout.addRow("Angle size:", self.radius)
+            layout.addWidget(buttonBox)
+
+            buttonBox.accepted.connect(self.accept)
+            buttonBox.rejected.connect(self.reject)
+
+        def getTrajectoryRadius(self):
+            return (int(self.radius.text()))
 
         def xyPosition(self):
             self.setWindowTitle("Choose the coordinates")
