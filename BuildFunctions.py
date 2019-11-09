@@ -1,6 +1,15 @@
 import vtk
 import numpy as np
 
+""" colors determine actor types
+    detector = 0.3, 0.3, 0.3
+    source = 1, 1, 1
+    trajectory_detector = 0.5, 0, 0.5
+    nodes_detector = .8, .8, 1
+    trajectory_source = .5, .5, 0
+    nodes_source = .8, .8, 0
+    object = 0.9, 0.9, 0.9
+"""
 def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (0.3, 0.3, 0.3)):
     cube = vtk.vtkCubeSource()
     cube.SetXLength(x_length)
@@ -39,18 +48,16 @@ def buildDiskActor(inner_radius = 0, outer_radius = 20, position = (100, 20), co
 
     return actor
 
-def buildCircleCurve(projections ,radius, position):
-
+def buildStraightCurve(projections, size, position):
     polydata = vtk.vtkPolyData()
     points = vtk.vtkPoints()
 
-    theta = np.linspace(0, 2 * np.pi, projections)
-    r = 100.0
+    theta = np.linspace(0, 2 * size, projections)
 
-    x = r * np.cos(theta)
-    y = r * np.sin(theta)
+    x = theta
     for k in range(projections):
-        points.InsertNextPoint(x[k]+position[0], y[k]+position[1], 0)
+        points.InsertNextPoint(x[k] + position[0], position[1], 0)
+
     lines = vtk.vtkCellArray()
     lines.InsertNextCell(projections)
 
@@ -67,7 +74,6 @@ def buildCircleCurve(projections ,radius, position):
     spline.SetRightValue(0.0)
 
     spline_filter = vtk.vtkSplineFilter()
-    # spline_filter.SetInput(polydata)
     spline_filter.SetInputData(polydata)
     spline_filter.SetNumberOfSubdivisions(polydata.GetNumberOfPoints() * 10)
     spline_filter.SetSpline(spline)
@@ -77,6 +83,8 @@ def buildCircleCurve(projections ,radius, position):
 
     spline_actor = vtk.vtkActor()
     spline_actor.SetMapper(spline_mapper)
+    spline_actor.GetProperty().SetColor(.7, .7, .7)
+
 
     nodes = vtk.vtkSphereSource()
     nodes.SetRadius(3)
@@ -85,6 +93,7 @@ def buildCircleCurve(projections ,radius, position):
 
     # polydata = vtk.vtkPolyData.SafeDownCast(spline.GetMapper().GetInputAsDataSet())
     # print(polydata.GetNumberOfCells)
+
     nodes_glyph = vtk.vtkGlyph3D()
     nodes_glyph.SetInputData(polydata)
     nodes_glyph.SetSourceConnection(nodes.GetOutputPort())
@@ -94,7 +103,93 @@ def buildCircleCurve(projections ,radius, position):
 
     nodes_actor = vtk.vtkActor()
     nodes_actor.SetMapper(nodes_mapper)
-    nodes_actor.GetProperty().SetColor(0.8900, 0.8100, 0.3400)
+    nodes_actor.GetProperty().SetColor(0.8, 0.8, 0.8)
+
+    return (spline_actor, nodes_actor)
+
+
+def buildCircleCurve(projections ,radius, position, obj):
+
+    polydata = vtk.vtkPolyData()
+    points = vtk.vtkPoints()
+
+    theta = np.linspace(0, 2 * np.pi, projections)
+    r = radius
+
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    for k in range(projections):
+        points.InsertNextPoint(x[k]+position[0]+r, y[k]+position[1], 0)
+
+    lines = vtk.vtkCellArray()
+    lines.InsertNextCell(projections)
+
+    for k in range(projections):
+        lines.InsertCellPoint(k)
+
+    polydata.SetPoints(points)
+    polydata.SetLines(lines)
+    polydata.GetPoints()
+
+    spline = vtk.vtkCardinalSpline()
+    spline.SetLeftConstraint(2)
+    spline.SetRightConstraint(2)
+    spline.SetLeftValue(0.0)
+    spline.SetRightValue(0.0)
+
+    spline_filter = vtk.vtkSplineFilter()
+    spline_filter.SetInputData(polydata)
+    spline_filter.SetNumberOfSubdivisions(polydata.GetNumberOfPoints() * 10)
+    spline_filter.SetSpline(spline)
+
+    spline_mapper = vtk.vtkPolyDataMapper()
+    spline_mapper.SetInputConnection(spline_filter.GetOutputPort())
+    print(obj)
+    spline_actor = vtk.vtkActor()
+    spline_actor.SetMapper(spline_mapper)
+    if obj == "source":
+        spline_actor.GetProperty().SetColor(.5, .5, 0)
+    if obj == "detector":
+        spline_actor.GetProperty().SetColor(0.5, 0, .5)
+
+    array = vtk.vtkUnsignedCharArray()
+    array.SetName('colors')
+    array.SetNumberOfComponents(3)
+    array.SetNumberOfTuples(projections)
+    color = 255//projections
+    if obj == "source":
+        for k in range(projections):
+            array.InsertTuple3(k, 2, color*(k+1), 1)
+    if obj == "detector":
+        for k in range(projections):
+            array.InsertTuple3(k, 2, 1, color*(k+1))
+
+
+    polydata_colored = vtk.vtkPolyData()
+    polydata_colored.ShallowCopy(polydata)
+    polydata_colored.GetPointData().SetScalars(array)
+
+    nodes = vtk.vtkSphereSource()
+    nodes.SetRadius(3)
+    nodes.SetPhiResolution(10)
+    nodes.SetThetaResolution(10)
+
+    nodes_glyph = vtk.vtkGlyph3D()
+    nodes_glyph.SetSourceConnection(nodes.GetOutputPort())
+    nodes_glyph.SetInputData(polydata_colored)
+
+    nodes_glyph.SetColorModeToColorByScalar()
+    nodes_glyph.SetInputData(polydata_colored)
+    #
+    nodes_mapper = vtk.vtkPolyDataMapper()
+    nodes_mapper.SetInputConnection(nodes_glyph.GetOutputPort())
+
+    nodes_actor = vtk.vtkActor()
+    nodes_actor.SetMapper(nodes_mapper)
+    if obj == "source":
+        nodes_actor.GetProperty().SetColor(0.8, 0.8, 0)
+    if obj == "detector":
+        nodes_actor.GetProperty().SetColor(0.8, 0.8, 1)
 
     return (spline_actor, nodes_actor)
 
