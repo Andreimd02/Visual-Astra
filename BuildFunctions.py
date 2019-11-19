@@ -48,7 +48,7 @@ def buildDiskActor(inner_radius = 0, outer_radius = 20, position = (100, 20), co
 
     return actor
 
-def buildStraightCurve(projections, size, position):
+def buildStraightTrajectory(projections, size, position, obj):
     polydata = vtk.vtkPolyData()
     points = vtk.vtkPoints()
 
@@ -83,32 +83,53 @@ def buildStraightCurve(projections, size, position):
 
     spline_actor = vtk.vtkActor()
     spline_actor.SetMapper(spline_mapper)
-    spline_actor.GetProperty().SetColor(.7, .7, .7)
+    if obj == "source":
+        spline_actor.GetProperty().SetColor(.5, .5, 0)
+    if obj == "detector":
+        spline_actor.GetProperty().SetColor(0.5, 0, .5)
 
+    array = vtk.vtkUnsignedCharArray()
+    array.SetName('colors')
+    array.SetNumberOfComponents(3)
+    array.SetNumberOfTuples(projections)
+    color = 255 // projections
+    if obj == "source":
+        for k in range(projections):
+            array.InsertTuple3(k, 2, color * (k + 1), 1)
+    if obj == "detector":
+        for k in range(projections):
+            array.InsertTuple3(k, 2, 1, color * (k + 1))
+
+    polydata_colored = vtk.vtkPolyData()
+    polydata_colored.ShallowCopy(polydata)
+    polydata_colored.GetPointData().SetScalars(array)
 
     nodes = vtk.vtkSphereSource()
     nodes.SetRadius(3)
     nodes.SetPhiResolution(10)
     nodes.SetThetaResolution(10)
 
-    # polydata = vtk.vtkPolyData.SafeDownCast(spline.GetMapper().GetInputAsDataSet())
-    # print(polydata.GetNumberOfCells)
-
     nodes_glyph = vtk.vtkGlyph3D()
-    nodes_glyph.SetInputData(polydata)
     nodes_glyph.SetSourceConnection(nodes.GetOutputPort())
+    nodes_glyph.SetInputData(polydata_colored)
 
+    nodes_glyph.SetColorModeToColorByScalar()
+    nodes_glyph.SetInputData(polydata_colored)
+    #
     nodes_mapper = vtk.vtkPolyDataMapper()
     nodes_mapper.SetInputConnection(nodes_glyph.GetOutputPort())
 
     nodes_actor = vtk.vtkActor()
     nodes_actor.SetMapper(nodes_mapper)
-    nodes_actor.GetProperty().SetColor(0.8, 0.8, 0.8)
+    if obj == "source":
+        nodes_actor.GetProperty().SetColor(0.8, 0.8, 0)
+    if obj == "detector":
+        nodes_actor.GetProperty().SetColor(0.8, 0.8, 1)
 
     return (spline_actor, nodes_actor)
 
 
-def buildCircleCurve(projections ,radius, position, obj):
+def buildCircleTrajectory(projections ,radius, position, obj):
 
     polydata = vtk.vtkPolyData()
     points = vtk.vtkPoints()
@@ -144,7 +165,7 @@ def buildCircleCurve(projections ,radius, position, obj):
 
     spline_mapper = vtk.vtkPolyDataMapper()
     spline_mapper.SetInputConnection(spline_filter.GetOutputPort())
-    print(obj)
+
     spline_actor = vtk.vtkActor()
     spline_actor.SetMapper(spline_mapper)
     if obj == "source":
@@ -193,25 +214,12 @@ def buildCircleCurve(projections ,radius, position, obj):
 
     return (spline_actor, nodes_actor)
 
+# def buildCustomTrajectory():
+#     contour_widget = vtk.vtkContourWidget()
+#     contour_representation = vtk.vtkOrientedGlyphContourRepresentation()
+#     contour_representation.GetLinesProperty().SetColor(1, 0, 0)
+#     contour_widget.SetRepresetation(contour_representation)
 #
-# def buildSplineSpheres(spline):
-#     nodes = vtk.vtkSphereSource()
-#     nodes.SetRadius(0.4)
-#     nodes.SetPhiResolution(10)
-#     nodes.SetThetaResolution(10)
 #
-#     polydata = vtk.vtkPolyData.SafeDownCast(spline.GetMapper().GetInputAsDataSet())
-#     print(polydata.GetNumberOfCells)
-#     glyph = vtk.vtkGlyph3D()
-#     glyph.SetInputData(polydata)
-#     glyph.SetSourceConnection(nodes.GetOutputPort())
-#
-#     mapper = vtk.vtkPolyDataMapper()
-#     mapper.SetInputConnection(glyph.GetOutputPort())
-#
-#     nodes_actor = vtk.vtkActor()
-#     nodes_actor.SetMapper(mapper)
-#     nodes_actor.GetProperty().SetColor(0.8900, 0.8100, 0.3400)
-#     nodes_actor.GetProperty().SetOpacity(.6)
-#
-#     return nodes_actor
+
+
