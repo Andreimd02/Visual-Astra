@@ -41,6 +41,12 @@ class SimulationWindow(QMainWindow):
         ##Vtk
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        #
+
+        # self.render_window = vtk.vtkRenderWindow()
+        # self.render_window.AddRenderer(self.renderer)
+        #
+        # self.vtkWidget.SetRenderWindow(self.render_window)
 
         self.addActors()
 
@@ -94,7 +100,6 @@ class SimulationWindow(QMainWindow):
     def contextMenuEvent(self, event):
         self.interactor.GetInteractorStyle().OnRightButtonDown(None, None)
         if(self.interactor.GetInteractorStyle().chosenPiece is not None):
-            ## checa se é um detector
 
             if(self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor() == (0.3, 0.3, 0.3)):
                 object_type = "detector"
@@ -139,7 +144,6 @@ class SimulationWindow(QMainWindow):
                     if(traj_dialog.exec()):
                         projs, trajectory_type = traj_dialog.getTrajInputs()
                         self.projections_number = projs
-                        # trocar projections_number dos dois detectors
                         if object_type_trajectory in self.objects_dic:
                             self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
                         else:
@@ -188,19 +192,26 @@ class SimulationWindow(QMainWindow):
         if ("source_trajectory" in self.objects_dic):
             object_type = "source_trajectory"
             if len(self.objects_dic[object_type]) != 0:
-                radius = self.getRadius(object_type)
+                if self.objects_dic[object_type][2] == "circle_trajectory":
+                    radius = self.getRadiusCircle(object_type)
+                elif self.objects_dic[object_type][2] == "straight_trajectory":
+                    radius = self.getRadiusStraight(object_type)
                 self.renderer.RemoveActor(self.objects_dic[object_type][0])
                 self.renderer.RemoveActor(self.objects_dic[object_type][1])
-            # if(actual_object != "source"):
+
             self.setActorTrajectory(self.objects_dic["source"], projs, trajectory_type, object_type, radius = radius)
+
         radius = 100
         if ("detector_trajectory" in self.objects_dic):
             object_type = "detector_trajectory"
             if len(self.objects_dic[object_type]) != 0:
-                radius = self.getRadius(object_type)
+                if self.objects_dic[object_type][2] == "circle_trajectory":
+                    radius = self.getRadiusCircle(object_type)
+                elif self.objects_dic[object_type][2] == "straight_trajectory":
+                    radius = self.getRadiusStraight(object_type)
                 self.renderer.RemoveActor(self.objects_dic[object_type][0])
                 self.renderer.RemoveActor(self.objects_dic[object_type][1])
-            # if(actual_object != "detector"):
+
             self.setActorTrajectory(self.objects_dic["detector"], projs, trajectory_type, object_type, radius = radius)
 
         self.interactor.GetInteractorStyle().updateObjects(self.objects_dic)
@@ -209,15 +220,20 @@ class SimulationWindow(QMainWindow):
         if trajectory_type == "circle_trajectory":
             traj_dialog = Dialogs()
             traj_dialog.trajectoryRadius()
-            trajectory, trajectory_nodes = buildCircleCurve(projs, radius, actor.GetPosition(), object[:-11])
+            print(radius)
+            trajectory, trajectory_nodes = buildCircleTrajectory(projs, radius, actor.GetPosition(), object[:-11])
             self.renderer.AddActor(trajectory)
             self.renderer.AddActor(trajectory_nodes)
             self.objects_dic[object] = (trajectory, trajectory_nodes, "circle_trajectory")
+
         elif trajectory_type == "straight_trajectory":
-            trajectory, trajectory_nodes = buildStraightCurve(projs, radius, actor.GetPosition(), object[:-11])
+            trajectory, trajectory_nodes = buildStraightTrajectory(projs, radius, actor.GetPosition(), object[:-11])
             self.renderer.AddActor(trajectory)
             self.renderer.AddActor(trajectory_nodes)
+            print(radius)
             self.objects_dic[object] = (trajectory, trajectory_nodes, "straight_trajectory")
+        elif trajectory_type == "custom_trajectory":
+            trajectory = self.buildCustomTrajectory()
 
             
         self.interactor.GetInteractorStyle().updateObjects(self.objects_dic)
@@ -226,7 +242,7 @@ class SimulationWindow(QMainWindow):
         # if(trajectory_type == "custom_trajectory"):
         #     self.trajectory = ContourWidget()
 
-    def getRadius(self, object_type):
+    def getRadiusCircle(self, object_type):
         polydata = vtk.vtkPolyData.SafeDownCast(self.objects_dic[object_type][0].GetMapper().GetInput())
         projections = polydata.GetNumberOfPoints() // 10
 
@@ -235,6 +251,42 @@ class SimulationWindow(QMainWindow):
         radius = round(point1[0] - point2[0]) / 2
         return radius
 
+    def getRadiusStraight(self, object_type):
+        polydata = vtk.vtkPolyData.SafeDownCast(self.objects_dic[object_type][0].GetMapper().GetInput())
+        projections = polydata.GetNumberOfPoints() // 10
+
+        point1 = polydata.GetPoint(0)
+        point2 = polydata.GetPoint(projections * 10)
+        radius = round(point2[0] - point1[0]) / 2
+        return radius
+
+    def buildCustomTrajectory(self):
+
+        inStyle = ContourInteractor(self.renderer, self.vtkWidget.GetRenderWindow(), self.objects_dic)
+        self.interactor.SetInteractorStyle(inStyle)
+
+        # render_window = vtk.vtkRenderWindow()
+        # render_window.AddRenderer(self.renderer)
+        #
+        # render_interactor = vtk.vtkRenderWindowInteractor()
+        # self.vtkWidget.SetRenderWindow(render_window)
+        # render_interactor.SetRenderWindow(self.vtkWidget.GetRenderWindow())
+        #
+        # contour_widget = vtk.vtkContourWidget()
+        # contour_widget.SetInteractor(self.interactor.GetInteractorStyle())
+        # contour_widget.CreateDefaultRepresentation()
+
+        # self.interactor.SetInteractorStyle(render_interactor)
+        # # render_interactor.Initialize()
+        #
+        # contour_widget.On()
+        # # render_window.Render()
+        #
+        # # render_interactor.Start()
+        # self.vtkWidget.show()
+
+        # self.renderer.ResetCamera()
+        # self.renderer.Delete()
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = SimulationWindow({'projection': 'Single Slice 2D', 'rotate-conf': 'Conv Circular'})

@@ -122,18 +122,28 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
             vtk.vtkInteractorStyleTrackballActor.OnMouseMove(self)
 
     def setTrajectoryPosition(self, trajectory_type, bonus_radius = 0):
-        x, y, z = self.chosenPiece.GetPosition()
         polydata = vtk.vtkPolyData.SafeDownCast(self.objects_dic[trajectory_type][0].GetMapper().GetInput())
         projections = polydata.GetNumberOfPoints()//10
 
-        point1 = polydata.GetPoint(0)
-        point2 = polydata.GetPoint(projections*10//2)
-        radius = round(point1[0] - point2[0])/2
-        radius += bonus_radius
-
         self.renderer.RemoveActor(self.objects_dic[trajectory_type][0])
         self.renderer.RemoveActor(self.objects_dic[trajectory_type][1])
-        trajectory, trajectory_nodes = buildCircleCurve(projections, radius, self.chosenPiece.GetPosition(), trajectory_type[:-11])
+
+        if self.objects_dic[trajectory_type][2] == 'circle_trajectory':
+            point1 = polydata.GetPoint(0)
+            point2 = polydata.GetPoint(projections*10//2)
+            radius = round(point1[0] - point2[0])/2
+            radius += bonus_radius
+
+            trajectory, trajectory_nodes = buildCircleTrajectory(projections, radius, self.chosenPiece.GetPosition(), trajectory_type[:-11])
+            self.objects_dic[trajectory_type] = (trajectory, trajectory_nodes, "circle_trajectory")
+        if self.objects_dic[trajectory_type][2] == 'straight_trajectory':
+            point1 = polydata.GetPoint(0)
+            point2 = polydata.GetPoint(projections*10)
+            radius = round(point2[0] - point1[0])/2
+            radius += bonus_radius
+
+
+            trajectory, trajectory_nodes = buildStraightTrajectory(projections, radius, self.chosenPiece.GetPosition(), trajectory_type[:-11])
+            self.objects_dic[trajectory_type] = (trajectory, trajectory_nodes, "straight_trajectory")
         self.renderer.AddActor(trajectory)
         self.renderer.AddActor(trajectory_nodes)
-        self.objects_dic[trajectory_type] = (trajectory, trajectory_nodes)
