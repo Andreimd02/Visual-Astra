@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox, QFormLayout, QLabel, QRadioButton, QGridLayout
+from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox, QFormLayout, QLabel, QRadioButton, QGridLayout, QFileDialog
 
 class Dialogs(QDialog):
         def __init__(self, parent=None):
@@ -64,21 +64,24 @@ class Dialogs(QDialog):
             # else:
             #     return error
 
-        def trajectoryRadius(self):
-            self.setWindowTitle("Choose the Size of Trajectory")
+        def trajectoryAngles(self):
+            self.setWindowTitle("choose the angle variation during projection")
+            self.setGeometry(200, 500, 400, 100)
 
-            self.radius = QLineEdit(self)
+            self.angle = QLineEdit(self)
             buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-
+            label = QLabel("To leave this mode just left click anywhere")
+            label.setStyleSheet('color: red')
             layout = QFormLayout(self)
-            layout.addRow("Angle size:", self.radius)
+            layout.addRow("Angle Variation:", self.angle)
+            layout.addWidget(label)
             layout.addWidget(buttonBox)
 
             buttonBox.accepted.connect(self.accept)
             buttonBox.rejected.connect(self.reject)
 
-        def getTrajectoryRadius(self):
-            return (int(self.radius.text()))
+        def getTrajectoryAngles(self):
+            return (int(self.angle.text()))
 
         def xyPosition(self):
             self.setWindowTitle("Choose the coordinates")
@@ -91,10 +94,14 @@ class Dialogs(QDialog):
             layout.addRow("X Axis", self.x)
             layout.addRow("Y axis", self.y)
             layout.addWidget(buttonBox)
-
             buttonBox.accepted.connect(self.accept)
             buttonBox.rejected.connect(self.reject)
 
 
         def getxyInputs(self):
             return (int(self.x.text()), int(self.y.text()))
+
+        def getFilePath(self):
+            fname = QFileDialog.getOpenFileName(self, 'Open file','/home', "*.png *.jpg")
+            image_path = fname[0]
+            return image_path

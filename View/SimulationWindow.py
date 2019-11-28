@@ -40,7 +40,9 @@ class SimulationWindow(QMainWindow):
 
         ##Vtk
         self.renderer = vtk.vtkRenderer()
-        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.background_renderer = vtk.vtkRenderer()
+
+        self.setBackground()
         #
 
         # self.render_window = vtk.vtkRenderWindow()
@@ -59,19 +61,67 @@ class SimulationWindow(QMainWindow):
         self.show()
         self.interactor.Initialize()
 
+    def setBackground(self):
+        super_quadric = vtk.vtkSuperquadricSource()
+        super_quadric.SetPhiRoundness(1.1)
+        super_quadric.SetThetaRoundness(.2)
+
+        super_quadric_mapper = vtk.vtkPolyDataMapper()
+        super_quadric_mapper.SetInputConnection(super_quadric.GetOutputPort())
+
+
+        super_quadric_actor = vtk.vtkActor()
+        super_quadric_actor.SetMapper(super_quadric_mapper)
+
+        self.background_renderer.SetLayer(0)
+        self.background_renderer.InteractiveOff()
+        self.renderer.SetLayer(1)
+
+        self.vtkWidget.GetRenderWindow().SetNumberOfLayers(2)
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.background_renderer)
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+
+
+        jpeg_reader = vtk.vtkJPEGReader()
+        ## change to get a relative path
+        jpeg_reader.SetFileName('/home/andrei/Área de Trabalho/Pesquisa/AstraUI/Resources/images.jpeg')
+        jpeg_reader.Update()
+        image_data = jpeg_reader.GetOutput()
+        image_actor = vtk.vtkImageActor()
+        image_actor.SetInputData(image_data)
+
+        self.renderer.AddActor(super_quadric_actor)
+        self.background_renderer.AddActor(image_actor)
+
+        origin = image_data.GetOrigin()
+        spacing = image_data.GetSpacing()
+        extent = image_data.GetExtent()
+
+        camera = self.background_renderer.GetActiveCamera()
+        camera.ParallelProjectionOn()
+
+        xc = origin[0] + 0.5 * (extent[0] + extent[1]) * spacing[0]
+        yc = origin[1] + 0.5 * (extent[2] + extent[3]) * spacing[1]
+        # xd = (extent[1] - extent[0] + 1) * spacing[0]
+        yd = (extent[3] - extent[2] + 1) * spacing[1]
+        d = camera.GetDistance();
+        camera.SetParallelScale(0.5 * yd)
+        camera.SetFocalPoint(xc, yc, 0.0)
+        camera.SetPosition(xc, yc, d)
+
     def addActors(self):
-        self.xraysource = buildDiskActor(position=(100, 130))
-        self.renderer.AddActor(self.xraysource)
-        self.objects_dic['source'] = self.xraysource
+            self.xraysource = buildDiskActor(position=(100, 130))
+            self.renderer.AddActor(self.xraysource)
+            self.objects_dic['source'] = self.xraysource
 
-        self.object = buildDiskActor(position=(350, 300), color=(0.9, 0.9, 0.9))
-        self.renderer.AddActor(self.object)
-        self.objects_dic['object'] = self.object
+            self.object = buildDiskActor(position=(350, 300), color=(0.9, 0.9, 0.9))
+            self.renderer.AddActor(self.object)
+            self.objects_dic['object'] = self.object
 
-        self.detector = buildCubeActor(position=(500, 400))
-        self.renderer.AddActor(self.detector)
-        self.objects_dic['detector'] = self.detector
-        self.renderer.ResetCamera()
+            self.detector = buildCubeActor(position=(500, 400))
+            self.renderer.AddActor(self.detector)
+            self.objects_dic['detector'] = self.detector
+            self.renderer.ResetCamera()
 
 
     def addInteractor(self):
@@ -101,13 +151,19 @@ class SimulationWindow(QMainWindow):
         self.interactor.GetInteractorStyle().OnRightButtonDown(None, None)
         if(self.interactor.GetInteractorStyle().chosenPiece is not None):
 
-            if(self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor() == (0.3, 0.3, 0.3)):
+            actor_color = self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor()
+            trajectory_colors = [(.8, .8, 0), (.5, .5, 0), (.8, .8, 1), (0.5, 0.0, 0.5)]
+            detector_trajectory_colors = [(0.5, 0, 0.5), (.8, .8, 1)]
+            source_trajectory_colors = [(.5, .5, 0), (.8, .8, 0)]
+
+            #Detector color
+            if(actor_color == (0.3, 0.3, 0.3)):
                 object_type = "detector"
                 object_type_trajectory = "detector_trajectory"
                 contextMenu = QMenu(self)
-                set_pos = contextMenu.addAction("set position")
+                set_pos = contextMenu.addAction("Set position")
                 det_num = contextMenu.addAction("DetectorNumbers")
-                set_trajectory = contextMenu.addAction("set trajectory")
+                set_trajectory = contextMenu.addAction("Set trajectory")
                 action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
                 if action == set_pos:
@@ -150,12 +206,13 @@ class SimulationWindow(QMainWindow):
                             self.objects_dic[object_type_trajectory] = []
                             self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
 
-            elif(self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor() == (1, 1, 1)):
+            #Source color
+            elif(actor_color == (1, 1, 1)):
                 object_type = "source"
                 object_type_trajectory = "source_trajectory"
                 contextMenu = QMenu(self)
-                set_pos = contextMenu.addAction("set position")
-                set_trajectory = contextMenu.addAction("set trajectory")
+                set_pos = contextMenu.addAction("Set position")
+                set_trajectory = contextMenu.addAction("Set trajectory")
                 action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
                 if action == set_pos:
@@ -183,9 +240,99 @@ class SimulationWindow(QMainWindow):
                             self.objects_dic[object_type_trajectory] = []
                             self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
 
+            elif actor_color in trajectory_colors:
+                object_type = ""
+                object_type_trajectory = ""
+
+                if actor_color in detector_trajectory_colors:
+                    object_type = "detector"
+                    object_type_trajectory = "detector_trajectory"
+                elif actor_color in source_trajectory_colors:
+                    object_type = "source"
+                    object_type_trajectory = "source_trajectory"
+
+
+                contextMenu = QMenu(self)
+                set_angle = contextMenu.addAction("Set Angles")
+
+                action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+
+                if action == set_angle:
+                    traj_dialog = Dialogs()
+                    traj_dialog.trajectoryAngles()
+
+                    if traj_dialog.exec():
+                        angle_variation = traj_dialog.getTrajectoryAngles()
+                        self.createTrajectorySimulation(angle_variation, self.objects_dic[object_type_trajectory], self.objects_dic[object_type])
+
+            #object color
+            elif actor_color == (0.9, 0.9, 0.9):
+                contextMenu = QMenu(self)
+                choose_image = contextMenu.addAction("Choose Image")
+
+                action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+
+                if action == choose_image:
+
+                    obj_dialog = Dialogs()
+                    path = obj_dialog.getFilePath()
+
+                    self.changeObjectImage(path)
+
 
         self.interactor.GetInteractorStyle().OnRightButtonRelease(None, None)
 
+    def createTrajectorySimulation(self, angle_variation, trajectory_actors, actor):
+        trajectory = trajectory_actors[0]
+        trajectory_nodes = trajectory_actors[1]
+        trajectory_type = trajectory_actors[2]
+
+        trajectory_polydata = vtk.vtkPolyData.SafeDownCast(trajectory.GetMapper().GetInput())
+        projection_numbers = trajectory_polydata.GetNumberOfPoints() // 10
+
+        actor_polydata = vtk.vtkPolyData.SafeDownCast(actor.GetMapper().GetInput())
+        new_actors = []
+
+        angles = np.linspace(0, angle_variation, projection_numbers)
+        for k in range(0, projection_numbers):
+            point = trajectory_polydata.GetPoint(k*10)
+            new_actor_polydata = vtk.vtkPolyData()
+            new_actor_polydata.CopyStructure(actor_polydata)
+
+            new_actor_mapper = vtk.vtkPolyDataMapper()
+            new_actor_mapper.SetInputData(new_actor_polydata)
+
+            new_actor = vtk.vtkActor()
+            new_actor.SetMapper(new_actor_mapper)
+
+            new_actor.SetPosition(point[0], point[1], 0)
+            new_actor.RotateZ(angles[k])
+            # new_actor.GetProperty().SetColor(0.2, 0., 0.5)
+            new_actor.GetProperty().SetOpacity(0.1)
+            new_actors.append(new_actor)
+            self.renderer.AddActor(new_actor)
+
+
+
+
+    def changeObjectImage(self, path):
+
+        reader = None
+        if path[-3:] == "png":
+            reader = vtk.vtkPNGReader()
+        elif path[-3:] == "jpg" or path[-4:] == "jpeg":
+            reader = vtk.vtkJPEGReader()
+
+        reader.SetFileName(path)
+        reader.Update()
+        image_data = reader.GetOutput()
+        image_actor = vtk.vtkImageActor()
+        image_actor.SetInputData(image_data)
+
+
+        self.renderer.RemoveActor(self.object)
+        self.object = image_actor
+        self.renderer.AddActor(self.object)
 
     def updateTrajectorys(self, actual_object, projs, trajectory_type, object_type):
         radius = 100
@@ -218,9 +365,6 @@ class SimulationWindow(QMainWindow):
 
     def setActorTrajectory(self, actor, projs, trajectory_type, object, radius = 100):
         if trajectory_type == "circle_trajectory":
-            traj_dialog = Dialogs()
-            traj_dialog.trajectoryRadius()
-            print(radius)
             trajectory, trajectory_nodes = buildCircleTrajectory(projs, radius, actor.GetPosition(), object[:-11])
             self.renderer.AddActor(trajectory)
             self.renderer.AddActor(trajectory_nodes)
@@ -230,7 +374,6 @@ class SimulationWindow(QMainWindow):
             trajectory, trajectory_nodes = buildStraightTrajectory(projs, radius, actor.GetPosition(), object[:-11])
             self.renderer.AddActor(trajectory)
             self.renderer.AddActor(trajectory_nodes)
-            print(radius)
             self.objects_dic[object] = (trajectory, trajectory_nodes, "straight_trajectory")
         elif trajectory_type == "custom_trajectory":
             trajectory = self.buildCustomTrajectory()
@@ -262,31 +405,26 @@ class SimulationWindow(QMainWindow):
 
     def buildCustomTrajectory(self):
 
-        inStyle = ContourInteractor(self.renderer, self.vtkWidget.GetRenderWindow(), self.objects_dic)
-        self.interactor.SetInteractorStyle(inStyle)
+        render_window = vtk.vtkRenderWindow()
+        render_window.AddRenderer(self.renderer)
 
-        # render_window = vtk.vtkRenderWindow()
-        # render_window.AddRenderer(self.renderer)
-        #
-        # render_interactor = vtk.vtkRenderWindowInteractor()
+        render_interactor = vtk.vtkRenderWindowInteractor()
         # self.vtkWidget.SetRenderWindow(render_window)
-        # render_interactor.SetRenderWindow(self.vtkWidget.GetRenderWindow())
-        #
-        # contour_widget = vtk.vtkContourWidget()
-        # contour_widget.SetInteractor(self.interactor.GetInteractorStyle())
-        # contour_widget.CreateDefaultRepresentation()
+        render_interactor.SetRenderWindow(render_window)
 
-        # self.interactor.SetInteractorStyle(render_interactor)
-        # # render_interactor.Initialize()
-        #
-        # contour_widget.On()
-        # # render_window.Render()
-        #
-        # # render_interactor.Start()
-        # self.vtkWidget.show()
+        contour_widget = vtk.vtkContourWidget()
+        contour_widget.SetInteractor(render_interactor)
+        contour_widget.CreateDefaultRepresentation()
 
-        # self.renderer.ResetCamera()
-        # self.renderer.Delete()
+        render_interactor.Initialize()
+
+        contour_widget.On()
+        render_window.Render()
+
+        render_interactor.Start()
+        # contour_widget.Off()
+        self.renderer.ResetCamera()
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = SimulationWindow({'projection': 'Single Slice 2D', 'rotate-conf': 'Conv Circular'})
