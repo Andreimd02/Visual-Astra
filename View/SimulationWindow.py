@@ -1,12 +1,18 @@
 from PyQt5.QtWidgets import QMainWindow, QMenu, QApplication, QFrame, QVBoxLayout, QAction
 from PyQt5 import QtGui, QtCore
+from PyQt5.QtGui import QIcon
 from View.Dialogs import Dialogs
 from BuildFunctions import *
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from interactor2d import CustomInteractor
 from MouseWatch import MouseWatch
+from vtk.util import numpy_support
+from AstraFunctions import AstraClass
 import sys
 import math
+import scipy.misc as misc
+import pylab
+import time
 
 ''' a ordem eh monta a tela
     cria o frame do vtk
@@ -58,6 +64,9 @@ class SimulationWindow(QMainWindow):
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.addInteractor()
 
+        self.image = None
+        self.detector_numbers = 1
+
         self.show()
         self.interactor.Initialize()
 
@@ -104,7 +113,7 @@ class SimulationWindow(QMainWindow):
         yc = origin[1] + 0.5 * (extent[2] + extent[3]) * spacing[1]
         # xd = (extent[1] - extent[0] + 1) * spacing[0]
         yd = (extent[3] - extent[2] + 1) * spacing[1]
-        d = camera.GetDistance();
+        d = camera.GetDistance()
         camera.SetParallelScale(0.5 * yd)
         camera.SetFocalPoint(xc, yc, 0.0)
         camera.SetPosition(xc, yc, d)
@@ -140,6 +149,67 @@ class SimulationWindow(QMainWindow):
         save_action.setShortcut("Ctrl+S")
         file_menu.addAction(save_action)
 
+        play_action = QAction(QIcon("/home/andrei/Área de Trabalho/Pesquisa/AstraUI/Resources/play.png"), 'play', self)
+        play_action.triggered.connect(self.playSimulation)
+        toolbar = self.addToolBar("ToolBar")
+        toolbar.addAction(play_action)
+
+    def playSimulation(self):
+        polydata_source = vtk.vtkPolyData.SafeDownCast(self.objects_dic['source_trajectory'][0].GetMapper().GetInput())
+        projections = polydata_source.GetNumberOfPoints() // 10
+        projections +=1
+        polydata_detector = vtk.vtkPolyData.SafeDownCast(self.objects_dic['detector_trajectory'][0].GetMapper().GetInput())
+
+        object = self.objects_dic['object']
+        object_x, object_y, _ = object.GetCenter()
+        src_vector = []
+        det_vector = []
+        u_vector = []
+
+        traj_dialog = Dialogs()
+        traj_dialog.trajectoryAngles()
+
+        if traj_dialog.exec():
+            angle_variation = traj_dialog.getTrajectoryAngles()
+
+
+        angles = np.linspace(0, angle_variation, projections)
+
+        det = self.objects_dic['detector']
+        x_min, x_max, y_min, y_max, _, _ = det.GetBounds()
+        angle = math.atan2(y_max - y_min, x_max - x_min) * 180
+        angle = angle / math.pi
+
+        for k in range(projections):
+            src_x, src_y, _ = polydata_source.GetPoint(k*10)
+            src_x = src_x - object_x
+            src_y = src_y - object_y
+
+            src_vector.append((src_x, src_y))
+
+            det_x, det_y, _ = polydata_detector.GetPoint(k*10)
+            det_x = det_x - object_x
+            det_y = det_y - object_y
+
+            det_vector.append((det_x, det_y))
+            if k < projections-1:
+                det.SetPosition((det_x, det_y, 0))
+                det.RotateZ(angles[k] + angle + 90)
+                x_min, x_max, y_min, y_max, _, _ = det.GetBounds()
+                u_vector.append((x_min, y_min))
+            else:
+                u_vector.append(u_vector[0])
+
+        # pylab.plot(np.array(src_vector)[:, 0], np.array(src_vector)[:, 1])
+        # pylab.plot(np.array(det_vector)[:, 0], np.array(det_vector)[:, 1])
+        # pylab.plot(np.array(u_vector)[:, 0], np.array(u_vector)[:, 1])
+        # pylab.show()
+
+        matrix = np.array([[src_vector[k][0], src_vector[k][1], det_vector[k][0], det_vector[k][1], u_vector[k][0], u_vector[k][1]] for k in range(projections)])
+
+        astra = AstraClass(self.image)
+        astra.fanflat_vec_2d(self.detector_numbers, matrix)
+
     def initWindow(self):
         # self.setWindowIcon(QtGui.QIcon("letter.png")) ##Define a icon
         self.createMenu()
@@ -157,7 +227,7 @@ class SimulationWindow(QMainWindow):
             source_trajectory_colors = [(.5, .5, 0), (.8, .8, 0)]
 
             #Detector color
-            if(actor_color == (0.3, 0.3, 0.3)):
+            if(actor_color == (0.3, 0.3, 0)):
                 object_type = "detector"
                 object_type_trajectory = "detector_trajectory"
                 contextMenu = QMenu(self)
@@ -186,6 +256,7 @@ class SimulationWindow(QMainWindow):
                     if(det_dialog.exec()):
 
                         numbers, size = det_dialog.getDetInputs()
+                        self.detector_numbers = numbers
                         x, y, _ = self.interactor.GetInteractorStyle().chosenPiece.GetPosition()
                         new_actor = buildCubeActor(position=(x, y, 0), x_length=numbers*size)
                         self.renderer.RemoveActor(self.interactor.GetInteractorStyle().chosenPiece)
@@ -306,30 +377,44 @@ class SimulationWindow(QMainWindow):
             new_actor.SetMapper(new_actor_mapper)
 
             new_actor.SetPosition(point[0], point[1], 0)
-            new_actor.RotateZ(angles[k])
-            # new_actor.GetProperty().SetColor(0.2, 0., 0.5)
+
+            traj = self.objects_dic['detector']
+            x_min, x_max, y_min, y_max, _, _ = traj.GetBounds()
+            original_angle = math.atan2(y_max - y_min, x_max - x_min) * 180
+            original_angle = original_angle / math.pi
+
+            new_actor.RotateZ(angles[k] + original_angle + 90)
             new_actor.GetProperty().SetOpacity(0.1)
             new_actors.append(new_actor)
             self.renderer.AddActor(new_actor)
 
-
-
+        self.objects_dic['trajectory_angles'] = new_actors
+        self.interactor.GetInteractorStyle().updateObjects(self.objects_dic)
 
     def changeObjectImage(self, path):
 
-        reader = None
-        if path[-3:] == "png":
-            reader = vtk.vtkPNGReader()
-        elif path[-3:] == "jpg" or path[-4:] == "jpeg":
-            reader = vtk.vtkJPEGReader()
+        im = misc.imread(path)
+        self.image = im
+        im = misc.imresize(im, 10)
+        im = np.array(im)
 
-        reader.SetFileName(path)
-        reader.Update()
-        image_data = reader.GetOutput()
-        image_actor = vtk.vtkImageActor()
-        image_actor.SetInputData(image_data)
+        image_data = vtk.vtkImageData()
+        image_array = numpy_support.numpy_to_vtk(im.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
 
+        image_data.SetDimensions((im.shape[0], im.shape[1], 1))
+        image_data.SetOrigin([0, 0, 0])
+        image_data.GetPointData().SetScalars(image_array)
 
+        image_filter = vtk.vtkImageDataGeometryFilter()
+        image_filter.SetInputData(image_data)
+        image_filter.Update()
+
+        image_mapper = vtk.vtkPolyDataMapper()
+        image_mapper.SetInputConnection(image_filter.GetOutputPort())
+
+        image_actor = vtk.vtkActor()
+        image_actor.SetMapper(image_mapper)
+        image_actor.GetProperty().SetColor(0.9, 0.9, 0.9)
         self.renderer.RemoveActor(self.object)
         self.object = image_actor
         self.renderer.AddActor(self.object)
@@ -403,6 +488,8 @@ class SimulationWindow(QMainWindow):
         radius = round(point2[0] - point1[0]) / 2
         return radius
 
+
+    ##doesn't work yet because vtkRenderWindowInteractor have troubles to deal with vtkContourWidget
     def buildCustomTrajectory(self):
 
         render_window = vtk.vtkRenderWindow()
