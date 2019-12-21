@@ -15,6 +15,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         self.AddObserver('MiddleButtonReleaseEvent', self.OnMiddleButtonRelease)
         self.rotation = False
         self.scale = False
+        self.erase_angles_demonstrator = False
 
         self.objects_dic = objects_dic
 
@@ -35,11 +36,21 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
 
     def OnLeftButtonRelease(self, obj, eventType):
         self.chosenPiece = None
+        if self.erase_angles_demonstrator:
+            for actor in self.objects_dic['trajectory_angles']:
+                self.renderer.RemoveActor(actor)
+            self.renderer.ResetCamera()
+            self.erase_angles_demonstrator = False
+            self.objects_dic['trajectory_angles'] = []
         vtk.vtkInteractorStyleTrackballActor.OnMiddleButtonUp(self)
 
 
     def OnLeftButtonDown(self, obj, eventType):
         clickPos = self.GetInteractor().GetEventPosition()
+        if 'trajectory_angles' in self.objects_dic:
+            if len(self.objects_dic) > 0:
+                self.erase_angles_demonstrator = True
+                self.OnLeftButtonRelease(obj, eventType)
 
         picker = vtk.vtkPropPicker()
         picker.Pick(clickPos[0], clickPos[1], 0, self.renderer)
@@ -47,9 +58,9 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         self.chosenPiece = actor
         if self.chosenPiece:
 
-                vtk.vtkInteractorStyleTrackballActor.OnMiddleButtonDown(self)
-                self.renderer.ResetCamera()
-        # self.renderer.ResetCamera()
+            vtk.vtkInteractorStyleTrackballActor.OnMiddleButtonDown(self)
+            self.renderer.ResetCamera()
+        self.renderer.ResetCamera()
 
     def updateObjects(self, objects_dic):
         self.objects_dic = objects_dic
@@ -81,7 +92,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         if self.chosenPiece is not None:
             actor_color = self.chosenPiece.GetProperty().GetColor()
             if self.rotation:
-                if actor_color == (.3, .3, .3):
+                if actor_color == (.3, .3, 0):
                     mouse_pos_pas = self.GetInteractor().GetLastEventPosition()
                     mouse_pos = self.GetInteractor().GetEventPosition()
                     rotate_x = mouse_pos[0] - mouse_pos_pas[0]
@@ -109,7 +120,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
                 if actor_color != (.5, 0, .5) and actor_color != (.5, .5, 0) and actor_color[0] != .8:
                     vtk.vtkInteractorStyleTrackballActor.OnMouseMove(self)
 
-                    if actor_color == (0.3, 0.3, 0.3):
+                    if actor_color == (0.3, 0.3, 0):
                         if "detector_trajectory" in self.objects_dic:
                             self.setTrajectoryPosition("detector_trajectory")
 

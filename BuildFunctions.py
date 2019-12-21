@@ -2,7 +2,7 @@ import vtk
 import numpy as np
 
 """ colors determine actor types
-    detector = 0.3, 0.3, 0.3
+    detector = 0.3, 0.3, 0
     source = 1, 1, 1
     trajectory_detector = 0.5, 0, 0.5
     nodes_detector = .8, .8, 1
@@ -10,7 +10,7 @@ import numpy as np
     nodes_source = .8, .8, 0
     object = 0.9, 0.9, 0.9
 """
-def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (0.3, 0.3, 0.3)):
+def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (0.3, 0.3, 0)):
     cube = vtk.vtkCubeSource()
     cube.SetXLength(x_length)
     cube.SetYLength(y_length)
