@@ -25,6 +25,7 @@ def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (
     actor.SetPosition(position[0], position[1], 0)
 
     actor.GetProperty().SetColor(color)
+    # "teste"
 
     return actor
 
