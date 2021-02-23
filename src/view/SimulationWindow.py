@@ -1,26 +1,25 @@
 from PyQt5.QtWidgets import QMainWindow, QMenu, QApplication, QFrame, QVBoxLayout, QAction
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import QIcon
-from View.Dialogs import Dialogs
-from BuildFunctions import *
+from src.view.Dialogs import Dialogs
+from src.BuildFunctions import *
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from interactor2d import CustomInteractor
+from src.interactor2d import CustomInteractor
 from vtk.util import numpy_support
-from AstraCustom import *
+from src.AstraCustom import *
 import sys
 import math
 import scipy.io as io
 import skimage.io as io
-import pylab
 import time
 
-''' a ordem eh monta a tela
-    cria o frame do vtk
-    chama o renderer
-    cria os actors
-    cria o interactor
-    chama o loop
-'''
+#  a ordem eh monta a tela
+#     cria o frame do vtk
+#     chama o renderer
+#     cria os actors
+#     cria o interactor
+#     chama o loop
+
 
 class SimulationWindow(QMainWindow):
     def __init__(self, projection_conf):
@@ -200,10 +199,6 @@ class SimulationWindow(QMainWindow):
             else:
                 u_vector.append(u_vector[0])
 
-        # pylab.plot(np.array(src_vector)[:, 0], np.array(src_vector)[:, 1])
-        # pylab.plot(np.array(det_vector)[:, 0], np.array(det_vector)[:, 1])
-        # pylab.plot(np.array(u_vector)[:, 0], np.array(u_vector)[:, 1])
-        # pylab.show()
 
         matrix = np.array([[src_vector[k][0], src_vector[k][1], det_vector[k][0], det_vector[k][1], u_vector[k][0], u_vector[k][1]] for k in range(projections)])
 
