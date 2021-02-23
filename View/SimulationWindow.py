@@ -5,12 +5,12 @@ from View.Dialogs import Dialogs
 from BuildFunctions import *
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from interactor2d import CustomInteractor
-from MouseWatch import MouseWatch
 from vtk.util import numpy_support
-from AstraFunctions import AstraClass
+from AstraCustom import *
 import sys
 import math
-import scipy.misc as misc
+import scipy.io as io
+import skimage.io as io
 import pylab
 import time
 
@@ -207,8 +207,8 @@ class SimulationWindow(QMainWindow):
 
         matrix = np.array([[src_vector[k][0], src_vector[k][1], det_vector[k][0], det_vector[k][1], u_vector[k][0], u_vector[k][1]] for k in range(projections)])
 
-        astra = AstraClass(self.image)
-        astra.fanflat_vec_2d(self.detector_numbers, matrix)
+        # astra = Astra(self.image)
+        fanflat_simulation(self.detector_numbers, matrix)
 
     def initWindow(self):
         # self.setWindowIcon(QtGui.QIcon("letter.png")) ##Define a icon
@@ -393,9 +393,10 @@ class SimulationWindow(QMainWindow):
 
     def changeObjectImage(self, path):
 
-        im = misc.imread(path)
+        im = io.imread(path)
         self.image = im
-        im = misc.imresize(im, 10)
+        # im = io.imresize(im, 10)
+        print (im)
         im = np.array(im)
 
         image_data = vtk.vtkImageData()
