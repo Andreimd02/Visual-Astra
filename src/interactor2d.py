@@ -1,4 +1,4 @@
-from BuildFunctions import *
+from .BuildFunctions import *
 
 class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
 
