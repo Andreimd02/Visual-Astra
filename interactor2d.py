@@ -1,5 +1,3 @@
-import vtk
-import math
 from BuildFunctions import *
 
 class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
