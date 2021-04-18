@@ -19,3 +19,8 @@ to install dependences run:
 
 after install manually astra
   `conda install -c astra-toolbox astra-toolbox`
+
+
+# Run Project
+
+  `python main.py`

@@ -1,16 +1,9 @@
 import vtk
 import numpy as np
+from src.settings import OBJECT_COLOR, SOURCE_COLOR, SOURCE_NODES_COLOR, SOURCE_TRAJECTORY_COLOR, DETECTOR_COLOR, DETECTOR_NODES_COLOR, DETECTOR_TRAJECTORY_COLOR
 
-""" colors determine actor types
-    detector = 0.3, 0.3, 0
-    source = 1, 1, 1
-    trajectory_detector = 0.5, 0, 0.5
-    nodes_detector = .8, .8, 1
-    trajectory_source = .5, .5, 0
-    nodes_source = .8, .8, 0
-    object = 0.9, 0.9, 0.9
-"""
-def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (0.3, 0.3, 0)):
+
+def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = DETECTOR_COLOR):
     cube = vtk.vtkCubeSource()
     cube.SetXLength(x_length)
     cube.SetYLength(y_length)
@@ -29,7 +22,7 @@ def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = (
 
     return actor
 
-def buildDiskActor(inner_radius = 0, outer_radius = 20, position = (100, 20), color = (1, 1, 1)):
+def buildDiskActor(inner_radius = 0, outer_radius = 20, position = (100, 20), color = SOURCE_COLOR):
     disk = vtk.vtkDiskSource()
     disk.SetInnerRadius(inner_radius)
     disk.SetOuterRadius(outer_radius)
@@ -85,9 +78,9 @@ def buildStraightTrajectory(projections, size, position, obj):
     spline_actor = vtk.vtkActor()
     spline_actor.SetMapper(spline_mapper)
     if obj == "source":
-        spline_actor.GetProperty().SetColor(.5, .5, 0)
+        spline_actor.GetProperty().SetColor(SOURCE_TRAJECTORY_COLOR)
     if obj == "detector":
-        spline_actor.GetProperty().SetColor(0.5, 0, .5)
+        spline_actor.GetProperty().SetColor(DETECTOR_TRAJECTORY_COLOR)
 
     array = vtk.vtkUnsignedCharArray()
     array.SetName('colors')
@@ -123,9 +116,9 @@ def buildStraightTrajectory(projections, size, position, obj):
     nodes_actor = vtk.vtkActor()
     nodes_actor.SetMapper(nodes_mapper)
     if obj == "source":
-        nodes_actor.GetProperty().SetColor(0.8, 0.8, 0)
+        nodes_actor.GetProperty().SetColor(SOURCE_NODES_COLOR)
     if obj == "detector":
-        nodes_actor.GetProperty().SetColor(0.8, 0.8, 1)
+        nodes_actor.GetProperty().SetColor(DETECTOR_NODES_COLOR)
 
     return (spline_actor, nodes_actor)
 
@@ -170,9 +163,9 @@ def buildCircleTrajectory(projections ,radius, position, obj):
     spline_actor = vtk.vtkActor()
     spline_actor.SetMapper(spline_mapper)
     if obj == "source":
-        spline_actor.GetProperty().SetColor(.5, .5, 0)
+        spline_actor.GetProperty().SetColor(SOURCE_TRAJECTORY_COLOR)
     if obj == "detector":
-        spline_actor.GetProperty().SetColor(0.5, 0, .5)
+        spline_actor.GetProperty().SetColor(DETECTOR_TRAJECTORY_COLOR)
 
     array = vtk.vtkUnsignedCharArray()
     array.SetName('colors')
@@ -209,9 +202,9 @@ def buildCircleTrajectory(projections ,radius, position, obj):
     nodes_actor = vtk.vtkActor()
     nodes_actor.SetMapper(nodes_mapper)
     if obj == "source":
-        nodes_actor.GetProperty().SetColor(0.8, 0.8, 0)
+        nodes_actor.GetProperty().SetColor(SOURCE_NODES_COLOR)
     if obj == "detector":
-        nodes_actor.GetProperty().SetColor(0.8, 0.8, 1)
+        nodes_actor.GetProperty().SetColor(DETECTOR_NODES_COLOR)
 
     return (spline_actor, nodes_actor)
 

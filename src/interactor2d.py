@@ -1,5 +1,5 @@
 from .BuildFunctions import *
-
+from src.settings import OBJECT_COLOR, SOURCE_COLOR, SOURCE_NODES_COLOR, SOURCE_TRAJECTORY_COLOR, DETECTOR_COLOR, DETECTOR_NODES_COLOR, DETECTOR_TRAJECTORY_COLOR
 class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
 
     def __init__(self, renderer, renWin, objects_dic):
@@ -72,7 +72,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         self.chosenPiece = actor
         if self.chosenPiece:
             actor_color = self.chosenPiece.GetProperty().GetColor()
-            if actor_color == (.5, 0, .5) or actor_color == (.5, .5, 0) or actor_color[0] == .8:
+            if actor_color == DETECTOR_TRAJECTORY_COLOR or actor_color == SOURCE_TRAJECTORY_COLOR or actor_color[0] == .8:
                 vtk.vtkInteractorStyleTrackballActor.OnRightButtonDown(self)
                 self.scale = True
             else:
@@ -90,7 +90,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         if self.chosenPiece is not None:
             actor_color = self.chosenPiece.GetProperty().GetColor()
             if self.rotation:
-                if actor_color == (.3, .3, 0):
+                if actor_color == DETECTOR_COLOR:
                     mouse_pos_pas = self.GetInteractor().GetLastEventPosition()
                     mouse_pos = self.GetInteractor().GetEventPosition()
                     rotate_x = mouse_pos[0] - mouse_pos_pas[0]
@@ -102,12 +102,12 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
                 mouse_pos_pas = self.GetInteractor().GetLastEventPosition()
                 mouse_pos = self.GetInteractor().GetEventPosition()
                 scale_y = mouse_pos[1] - mouse_pos_pas[1]
-                if actor_color == (.5, 0, .5) or actor_color[2] == 1:
+                if actor_color == DETECTOR_TRAJECTORY_COLOR or actor_color[2] == 1:
                     self.chosenPiece = self.objects_dic["detector"]
                     self.setTrajectoryPosition("detector_trajectory", scale_y)
                     self.chosenPiece = self.objects_dic["detector_trajectory"][0]
 
-                elif actor_color == (.5, .5, 0) or actor_color[2] == 0:
+                elif actor_color == SOURCE_TRAJECTORY_COLOR or actor_color[2] == 0:
                     self.chosenPiece = self.objects_dic["source"]
                     self.setTrajectoryPosition("source_trajectory", scale_y)
                     self.chosenPiece = self.objects_dic["source_trajectory"][0]
@@ -115,14 +115,14 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
                 self.renderer.ResetCamera()
 
             else:
-                if actor_color != (.5, 0, .5) and actor_color != (.5, .5, 0) and actor_color[0] != .8:
+                if actor_color != DETECTOR_TRAJECTORY_COLOR and actor_color != SOURCE_TRAJECTORY_COLOR and actor_color[0] != .8:
                     vtk.vtkInteractorStyleTrackballActor.OnMouseMove(self)
 
-                    if actor_color == (0.3, 0.3, 0):
+                    if actor_color == DETECTOR_COLOR:
                         if "detector_trajectory" in self.objects_dic:
                             self.setTrajectoryPosition("detector_trajectory")
 
-                    elif actor_color == (1, 1, 1):
+                    elif actor_color == SOURCE_COLOR:
                         if "source_trajectory" in self.objects_dic:
                             self.setTrajectoryPosition("source_trajectory")
                     self.renderer.ResetCamera()

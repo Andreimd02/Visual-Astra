@@ -7,11 +7,13 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from src.interactor2d import CustomInteractor
 from vtk.util import numpy_support
 from src.AstraCustom import *
+from src.settings import BASE_DIR, DETECTOR_COLOR, DETECTOR_NODES_COLOR, DETECTOR_TRAJECTORY_COLOR, OBJECT_COLOR, SOURCE_COLOR, SOURCE_NODES_COLOR, SOURCE_TRAJECTORY_COLOR
 import sys
 import math
 import scipy.io as io
 import skimage.io as io
 import time
+
 
 #  a ordem eh monta a tela
 #     cria o frame do vtk
@@ -26,7 +28,7 @@ class SimulationWindow(QMainWindow):
         super().__init__()
         self.projection_conf = projection_conf
         self.title = "Choose the other configs"
-        self.icon = QtGui.QIcon("Resources/mainIcon.png")
+        self.icon = QtGui.QIcon("resources/main_icon.png") # TODO: put an icon
         self.top = 400
         self.left = 300
         self.width = 800
@@ -46,8 +48,8 @@ class SimulationWindow(QMainWindow):
         ##Vtk
         self.renderer = vtk.vtkRenderer()
         self.background_renderer = vtk.vtkRenderer()
-
         self.setBackground()
+        
         #
 
         # self.render_window = vtk.vtkRenderWindow()
@@ -92,7 +94,7 @@ class SimulationWindow(QMainWindow):
 
         jpeg_reader = vtk.vtkJPEGReader()
         ## change to get a relative path
-        jpeg_reader.SetFileName('/home/andrei/Área de Trabalho/Pesquisa/AstraUI/Resources/images.jpeg')
+        jpeg_reader.SetFileName(f"{BASE_DIR}/resources/background.jpeg") # TODO: Change background with just a collor
         jpeg_reader.Update()
         image_data = jpeg_reader.GetOutput()
         image_actor = vtk.vtkImageActor()
@@ -122,7 +124,7 @@ class SimulationWindow(QMainWindow):
             self.renderer.AddActor(self.xraysource)
             self.objects_dic['source'] = self.xraysource
 
-            self.object = buildDiskActor(position=(350, 300), color=(0.9, 0.9, 0.9))
+            self.object = buildDiskActor(position=(350, 300), color=OBJECT_COLOR)
             self.renderer.AddActor(self.object)
             self.objects_dic['object'] = self.object
 
@@ -144,11 +146,12 @@ class SimulationWindow(QMainWindow):
         view_menu = main_menu.addMenu('View')
         help_menu = main_menu.addMenu('Help')
 
-        save_action = QAction(QtGui.QIcon("Resources/saveIcon.png"), 'Save', self)
+        save_action = QAction(QtGui.QIcon("resources/save_icon.png"), 'Save', self)
         save_action.setShortcut("Ctrl+S")
+        # TODO: save config and make option to load that
         file_menu.addAction(save_action)
 
-        play_action = QAction(QIcon("/home/andrei/Área de Trabalho/Pesquisa/AstraUI/Resources/play.png"), 'play', self)
+        play_action = QAction(QIcon("resources/play_icon.png"), 'play', self)
         play_action.triggered.connect(self.playSimulation)
         toolbar = self.addToolBar("ToolBar")
         toolbar.addAction(play_action)
@@ -217,12 +220,12 @@ class SimulationWindow(QMainWindow):
         if(self.interactor.GetInteractorStyle().chosenPiece is not None):
 
             actor_color = self.interactor.GetInteractorStyle().chosenPiece.GetProperty().GetColor()
-            trajectory_colors = [(.8, .8, 0), (.5, .5, 0), (.8, .8, 1), (0.5, 0.0, 0.5)]
-            detector_trajectory_colors = [(0.5, 0, 0.5), (.8, .8, 1)]
-            source_trajectory_colors = [(.5, .5, 0), (.8, .8, 0)]
+            trajectory_colors = [SOURCE_NODES_COLOR, SOURCE_TRAJECTORY_COLOR, DETECTOR_NODES_COLOR, DETECTOR_TRAJECTORY_COLOR]
+            detector_trajectory_colors = [DETECTOR_TRAJECTORY_COLOR, DETECTOR_NODES_COLOR]
+            source_trajectory_colors = [SOURCE_TRAJECTORY_COLOR, SOURCE_NODES_COLOR]
 
             #Detector color
-            if(actor_color == (0.3, 0.3, 0)):
+            if(actor_color == DETECTOR_COLOR):
                 object_type = "detector"
                 object_type_trajectory = "detector_trajectory"
                 contextMenu = QMenu(self)
@@ -273,7 +276,7 @@ class SimulationWindow(QMainWindow):
                             self.updateTrajectorys(object_type, projs, trajectory_type, object_type_trajectory)
 
             #Source color
-            elif(actor_color == (1, 1, 1)):
+            elif(actor_color == SOURCE_COLOR):
                 object_type = "source"
                 object_type_trajectory = "source_trajectory"
                 contextMenu = QMenu(self)
@@ -332,7 +335,7 @@ class SimulationWindow(QMainWindow):
                         self.createTrajectorySimulation(angle_variation, self.objects_dic[object_type_trajectory], self.objects_dic[object_type])
 
             #object color
-            elif actor_color == (0.9, 0.9, 0.9):
+            elif actor_color == OBJECT_COLOR:
                 contextMenu = QMenu(self)
                 choose_image = contextMenu.addAction("Choose Image")
 
@@ -390,8 +393,7 @@ class SimulationWindow(QMainWindow):
 
         im = io.imread(path)
         self.image = im
-        # im = io.imresize(im, 10)
-        print (im)
+        # TODO: resize image
         im = np.array(im)
 
         image_data = vtk.vtkImageData()
@@ -410,7 +412,7 @@ class SimulationWindow(QMainWindow):
 
         image_actor = vtk.vtkActor()
         image_actor.SetMapper(image_mapper)
-        image_actor.GetProperty().SetColor(0.9, 0.9, 0.9)
+        image_actor.GetProperty().SetColor(OBJECT_COLOR)
         self.renderer.RemoveActor(self.object)
         self.object = image_actor
         self.renderer.AddActor(self.object)
@@ -463,7 +465,8 @@ class SimulationWindow(QMainWindow):
         self.interactor.GetInteractorStyle().updateObjects(self.objects_dic)
         self.renderer.ResetCamera()
 
-        # if(trajectory_type == "custom_trajectory"):
+        # TODO: finish custom_trajectory
+        # if(trajectory_type == "custom_trajectory"): 
         #     self.trajectory = ContourWidget()
 
     def getRadiusCircle(self, object_type):
@@ -485,7 +488,7 @@ class SimulationWindow(QMainWindow):
         return radius
 
 
-    ##doesn't work yet because vtkRenderWindowInteractor have troubles to deal with vtkContourWidget
+    ## TODO: doesn't work yet because vtkRenderWindowInteractor have troubles to deal with vtkContourWidget
     def buildCustomTrajectory(self):
 
         render_window = vtk.vtkRenderWindow()
