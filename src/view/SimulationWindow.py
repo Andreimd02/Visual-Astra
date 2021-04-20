@@ -162,8 +162,8 @@ class SimulationWindow(QMainWindow):
         projections +=1
         polydata_detector = vtk.vtkPolyData.SafeDownCast(self.objects_dic['detector_trajectory'][0].GetMapper().GetInput())
 
-        object = self.objects_dic['object']
-        object_x, object_y, _ = object.GetCenter()
+        object_data = self.objects_dic['object']
+        object_x, object_y, _ = object_data.GetCenter()
         src_vector = []
         det_vector = []
         u_vector = []
@@ -175,37 +175,46 @@ class SimulationWindow(QMainWindow):
             angle_variation = traj_dialog.getTrajectoryAngles()
 
 
-        angles = np.linspace(0, angle_variation, projections)
-
         det = self.objects_dic['detector']
         x_min, x_max, y_min, y_max, _, _ = det.GetBounds()
         angle = math.atan2(y_max - y_min, x_max - x_min) * 180
         angle = angle / math.pi
+        angles = np.linspace(angle, angle_variation+angle, projections) ## calculate all angles that detector will have
+
+        src_distances = []
+        dest_distances = []
 
         for k in range(projections):
             src_x, src_y, _ = polydata_source.GetPoint(k*10)
-            src_x = src_x - object_x
-            src_y = src_y - object_y
-
-            src_vector.append((src_x, src_y))
-
+            src_dist = ( (object_x - src_x)**2 + (object_y - src_y)**2 )**0.5
+            src_distances.append(src_dist)
             det_x, det_y, _ = polydata_detector.GetPoint(k*10)
-            det_x = det_x - object_x
-            det_y = det_y - object_y
+            det_dist = ( (object_x - det_x)**2 + (object_y - det_x)**2 )**0.5
+            dest_distances.append(det_dist)
 
-            det_vector.append((det_x, det_y))
-            if k < projections-1:
-                det.SetPosition((det_x, det_y, 0))
-                det.RotateZ(angles[k] + angle + 90)
-                x_min, x_max, y_min, y_max, _, _ = det.GetBounds()
-                u_vector.append((x_min, y_min))
-            else:
-                u_vector.append(u_vector[0])
+        # for k in range(projections):
+        #     src_x, src_y, _ = polydata_source.GetPoint(k*10)
+        #     src_x = src_x - object_x
+        #     src_y = src_y - object_y
 
+        #     src_vector.append((src_x, src_y))
 
-        matrix = np.array([[src_vector[k][0], src_vector[k][1], det_vector[k][0], det_vector[k][1], u_vector[k][0], u_vector[k][1]] for k in range(projections)])
+        #     det_x, det_y, _ = polydata_detector.GetPoint(k*10)
+        #     det_x = det_x - object_x
+        #     det_y = det_y - object_y
+
+        #     det_vector.append((det_x, det_y))
+        #     if k < projections-1:
+        #         det.SetPosition((det_x, det_y, 0))
+        #         det.RotateZ(angles[k] + angle + 90)
+        #         x_min, x_max, y_min, y_max, _, _ = det.GetBounds()
+        #         u_vector.append((x_min, y_min))
+        #     else:
+        #         u_vector.append(u_vector[0])
+        # matrix = np.array([[src_vector[k][0], src_vector[k][1], det_vector[k][0], det_vector[k][1], u_vector[k][0], u_vector[k][1]] for k in range(projections)])
 
         # astra = Astra(self.image)
+        matrix = create_matrix_fanflat(angles, src_distances, dest_distances, 256)
         fanflat_simulation(self.detector_numbers, matrix)
 
     def initWindow(self):
@@ -458,6 +467,7 @@ class SimulationWindow(QMainWindow):
             self.renderer.AddActor(trajectory)
             self.renderer.AddActor(trajectory_nodes)
             self.objects_dic[object] = (trajectory, trajectory_nodes, "straight_trajectory")
+
         elif trajectory_type == "custom_trajectory":
             trajectory = self.buildCustomTrajectory()
 
