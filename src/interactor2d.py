@@ -16,6 +16,7 @@ class CustomInteractor(vtk.vtkInteractorStyleTrackballActor):
         self.erase_angles_demonstrator = False
 
         self.objects_dic = objects_dic
+        self.teste = teste
 
         self.renderer = renderer
         self.chosenPiece = None
