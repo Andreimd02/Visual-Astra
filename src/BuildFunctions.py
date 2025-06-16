@@ -7,6 +7,7 @@ def buildCubeActor(x_length = 30, y_length = 15, position = (100, 20), color = D
     cube = vtk.vtkCubeSource()
     cube.SetXLength(x_length)
     cube.SetYLength(y_length)
+    cube.SetZLength(z_length)
     cube.Update()
 
     mapper = vtk.vtkPolyDataMapper()
