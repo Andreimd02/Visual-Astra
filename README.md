@@ -1,26 +1,60 @@
-# Tomo3D
+# Visual-Astra
 
-A project to make a 3D CT Simulators
-Study of the libraries
-https://medium.com/@wilfilho/pyqt5-o-fantastico-mundo-das-guis-62914b1b39c1 a good link that explains the PyQt5 library
-https://www.astra-toolbox.com/ the AstraToolbox Oficial Documentation site
-https://www.youtube.com/watch?v=VjjH12xC_JE&list=PLmecqweSELQMJe4NcrsNxKcRthHCkRDET A playlist that explains how the AstraToolbox Library works
+Visual-Astra é um simulador 3D de tomografias desenvolvido em Python utilizando VTK e NumPy. O projeto permite a visualização e manipulação de objetos, fontes e detectores em ambientes tridimensionais, simulando trajetórias e cenários típicos de experimentos de tomografia computadorizada.
 
-# Install Dependences
-first install anaconda  on oficial site `https://www.anaconda.com/products/individual`
-We recommend anaconda because astra-toolbox lib has some troubles with pip
-  
-`conda create -n visual-astra python=3.6`
+## Funcionalidades
+- Visualização 3D de objetos, fontes e detectores
+- Simulação de trajetórias (reta e circular) para fontes e detectores
+- Customização de cores e posições dos elementos
+- Interface para manipulação dos parâmetros de simulação
+- Utilização de arquivos de recursos gráficos (imagens, phantoms)
 
-`source activate visual-astra`
+## Estrutura do Projeto
+```
+main.py                  # Arquivo principal de execução
+requirements.txt         # Dependências do projeto
+resources/               # Imagens e arquivos de recursos
+src/                     # Código-fonte principal
+    BuildFunctions.py    # Funções de construção de atores e trajetórias
+    AstraCustom.py       # Customizações específicas do Astra
+    interactor2d.py      # Interação 2D
+    settings.py          # Configurações de cores e parâmetros
+    view/                # Interface gráfica e diálogos
+        Dialogs.py           # Diálogos da interface
+        SimulationWindow.py   # Janela de simulação
+        teste.py              # Arquivo de testes
+        phantom.mat           # Phantom de exemplo
+        __init__.py           # Inicialização do módulo
+```
 
-to install dependences run:   
-  `pip install -r requirements.txt`
+## Instalação
+1. Clone o repositório:
+   ```powershell
+   git clone https://github.com/Andreimd02/Visual-Astra.git
+   ```
+2. Instale as dependências:
+   ```powershell
+   pip install -r requirements.txt
+   ```
 
-after install manually astra
-  `conda install -c astra-toolbox astra-toolbox`
+## Uso
+Execute o arquivo principal:
+```powershell
+python main.py
+```
 
+## Requisitos
+- Python 3.8+
+- matplotlib
+- numpy
+- vtk
+- PyQt5
+- scipy
+- scikit-image
+- wheel
 
-# Run Project
+## Créditos
+Desenvolvido por Andreimd02 e colaboradores.
 
-  `python main.py`
+## Licença
+Este projeto está sob a licença MIT.
